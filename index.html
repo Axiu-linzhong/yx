@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>谁的方法更合适 · AI小法官</title>
+<style>
+  :root{
+    --bg:#EAF2FF; --card:#FFFFFF; --ink:#22304A; --muted:#6B7A99;
+    --blue:#3B82F6; --green:#1FA971; --red:#EF5350; --amber:#F59E0B;
+    --line:#E3EAF5; --soft:#F5F8FF;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
+    background:linear-gradient(160deg,#EAF2FF,#F6FBFF);
+    color:var(--ink);min-height:100vh;display:flex;align-items:center;
+    justify-content:center;padding:18px;
+  }
+  .app{
+    width:100%;max-width:840px;background:var(--card);border-radius:26px;
+    box-shadow:0 14px 48px rgba(40,80,140,.14);padding:30px 34px 36px;
+    position:relative;overflow:hidden;
+  }
+  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+  .badge{font-size:14px;color:var(--muted);background:var(--soft);
+    padding:6px 14px;border-radius:999px;border:1px solid var(--line);}
+  .score{font-size:16px;font-weight:700;color:var(--blue);}
+  .screen{display:none;animation:fade .35s ease;}
+  .screen.show{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+
+  h1{font-size:30px;line-height:1.35;margin-bottom:10px;text-align:center;}
+  h2{font-size:24px;margin-bottom:14px;text-align:center;}
+  .sub{font-size:16px;color:var(--muted);text-align:center;margin-bottom:22px;line-height:1.7;}
+
+  .scene{
+    background:var(--soft);border:1px solid var(--line);border-radius:20px;
+    padding:26px 24px;text-align:center;margin-bottom:20px;
+  }
+  .emoji{font-size:74px;line-height:1;margin-bottom:8px;}
+  .scene-title{font-size:22px;font-weight:700;margin-bottom:6px;}
+  .scene-desc{font-size:18px;color:var(--ink);line-height:1.6;}
+
+  .judge-row{display:flex;gap:16px;margin-bottom:18px;}
+  .pick{
+    flex:1;border:2px solid var(--line);background:#fff;border-radius:16px;
+    padding:18px;font-size:22px;font-weight:700;cursor:pointer;color:var(--ink);
+    transition:.15s;user-select:none;
+  }
+  .pick:hover{transform:translateY(-2px);}
+  .pick.yes.sel{border-color:var(--green);background:#EAFaf3;color:var(--green);}
+  .pick.no.sel{border-color:var(--red);background:#FFEFEF;color:var(--red);}
+
+  .reason{background:#FFFDF6;border:1px dashed var(--amber);border-radius:16px;
+    padding:16px 18px;margin-bottom:16px;}
+  .reason-tip{font-size:15px;color:#9A6B00;margin-bottom:10px;font-weight:600;}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
+  .chip{font-size:14px;background:#FFF3D6;color:#8a5a00;border:1px solid #F3D89A;
+    padding:7px 12px;border-radius:999px;cursor:pointer;transition:.12s;}
+  .chip:hover{background:#FFE9B0;}
+  .templates{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+  .tpl{font-size:14px;background:#EAF1FF;color:var(--blue);border:1px solid #C9DBFF;
+    padding:7px 12px;border-radius:10px;cursor:pointer;}
+  .tpl:hover{background:#DCE9FF;}
+  textarea{width:100%;min-height:64px;border:1px solid var(--line);border-radius:12px;
+    padding:12px 14px;font-size:16px;font-family:inherit;resize:vertical;color:var(--ink);}
+
+  .actions{display:flex;gap:14px;align-items:center;}
+  .btn{
+    border:none;border-radius:14px;padding:16px 22px;font-size:19px;font-weight:700;
+    cursor:pointer;transition:.15s;color:#fff;
+  }
+  .btn.primary{background:var(--blue);}
+  .btn.primary:hover{background:#2f6fe0;}
+  .btn.ghost{background:#EEF3FB;color:var(--blue);}
+  .btn:disabled{opacity:.45;cursor:not-allowed;}
+  .btn.block{width:100%;}
+
+  .verdict{margin-top:18px;border-radius:16px;padding:18px 20px;font-size:17px;
+    line-height:1.7;display:none;}
+  .verdict.show{display:block;animation:fade .3s ease;}
+  .verdict.ok{background:#EAFaf3;border:1px solid #B7E8CF;color:#15633F;}
+  .verdict.no{background:#FFF1F1;border:1px solid #F4C4C4;color:#9B2C2C;}
+
+  .start-card{text-align:center;padding:10px 0;}
+  .start-emoji{font-size:88px;margin-bottom:6px;}
+  .rules{text-align:left;background:var(--soft);border:1px solid var(--line);
+    border-radius:16px;padding:18px 22px;margin:18px 0 24px;font-size:16px;line-height:1.9;color:var(--ink);}
+  .rules b{color:var(--blue);}
+
+  .result{text-align:center;}
+  .result-emoji{font-size:80px;}
+  .result-score{font-size:46px;font-weight:800;color:var(--blue);margin:6px 0;}
+  .result-msg{font-size:18px;color:var(--ink);line-height:1.8;margin-bottom:8px;}
+  .golden{font-size:22px;font-weight:800;color:var(--amber);margin:14px 0 22px;}
+  .footer{margin-top:18px;font-size:12px;color:#9FB0CC;text-align:center;line-height:1.6;}
+  .progress{font-size:14px;color:var(--muted);text-align:center;margin-bottom:10px;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- 开始屏 -->
+  <section id="screen-start" class="screen show">
+    <div class="start-card">
+      <div class="start-emoji">🐘⚖️</div>
+      <h1>谁的方法更合适？</h1>
+      <p class="sub">《大象的耳朵》趣味深化 · AI互动小游戏</p>
+    </div>
+    <div class="rules">
+      <div>🎯 <b>玩法</b>：看情境，快速判断做法“合适 / 不合适”，再<b>用课文的话</b>说出理由。</div>
+      <div>🤖 点“请AI小法官评判”，智能小法官会给你童趣点评和鼓励。</div>
+      <div>💡 记得用上金句：“<b>人家是人家，我是我</b>”——适合自己的才是最好的。</div>
+      <div>🏆 判断正确 +10 分，能说出理由再 +5 分，看看你能拿多少分！</div>
+    </div>
+    <button class="btn primary block" onclick="startGame()">开始挑战 ▶</button>
+  </section>
+
+  <!-- 游戏屏 -->
+  <section id="screen-game" class="screen">
+    <div class="topbar">
+      <span class="badge">🤖 AI小法官在线</span>
+      <span class="score">得分：<span id="score">0</span></span>
+    </div>
+    <div class="progress" id="progress">第 1 / 6 题</div>
+
+    <div class="scene">
+      <div class="emoji" id="sc-emoji">🐟</div>
+      <div class="scene-title" id="sc-title">小鱼学飞鸟</div>
+      <div class="scene-desc" id="sc-desc"></div>
+    </div>
+
+    <div class="judge-row">
+      <div class="pick yes" id="pick-yes" onclick="choose('yes')">✅ 合适</div>
+      <div class="pick no" id="pick-no" onclick="choose('no')">❌ 不合适</div>
+    </div>
+
+    <div class="reason">
+      <div class="reason-tip">🗣️ 用课文的话说理（点下面的短语或句式，填进框里）：</div>
+      <div class="chips" id="chips"></div>
+      <div class="templates">
+        <span class="tpl" onclick="insertTpl('因为______，所以______。')">因为…所以…</span>
+        <span class="tpl" onclick="insertTpl('这让我想到：人家是人家，我是我。')">金句：人家是人家，我是我</span>
+      </div>
+      <textarea id="reason" placeholder="在这里写出你的理由……"></textarea>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" id="judgeBtn" onclick="judge()">🤖 请AI小法官评判</button>
+      <button class="btn ghost" id="nextBtn" style="display:none" onclick="next()">下一题 →</button>
+    </div>
+
+    <div class="verdict" id="verdict"></div>
+  </section>
+
+  <!-- 结果屏 -->
+  <section id="screen-result" class="screen">
+    <div class="result">
+      <div class="result-emoji">🎉</div>
+      <div class="result-score" id="final-score">0</div>
+      <div class="result-msg" id="final-msg"></div>
+      <div class="golden">“人家是人家，我是我。”<br>每个人、每个事物都有自身特点，适合自己的才是最好的。</div>
+      <button class="btn primary block" onclick="restart()">再玩一次 ↻</button>
+    </div>
+  </section>
+
+  <div class="footer">
+    内置 AI 小法官智能评语引擎，离线即可运行；如需接入真实大模型，可在源码 config 处填写接口地址。
+  </div>
+</div>
+
+<script>
+/* ====== 情境数据（含课文指定4个 + 2个拓展） ====== */
+const scenarios = [
+  {
+    emoji:"🐟", title:"小鱼学飞鸟", desc:"小鱼看见飞鸟在天上飞，也想学飞鸟在天上飞。",
+    correct:"no",
+    chips:["小鱼用鳃呼吸，天生不会飞","小鱼没有翅膀","小鱼在水里游才最棒"],
+    ok:"小法官点头👍：没错！小鱼用鳃呼吸、没有翅膀，硬学飞鸟只会呛水。记住——人家是人家，我是我！",
+    oops:"小法官歪头🤔：再想想～小鱼用鳃呼吸，哪来的翅膀呀？在水里自由自在地游，才是适合小鱼自己的！"
+  },
+  {
+    emoji:"🦆", title:"小鸭学小兔蹦跳", desc:"小鸭看见小兔蹦蹦跳跳很可爱，也学小兔用力蹦跳。",
+    correct:"no",
+    chips:["小鸭脚上有蹼，适合划水","小鸭硬蹦跳容易摔跤","小鸭游泳才是特长"],
+    ok:"小法官鼓掌👏：对啦！小鸭脚蹼是用来划水游泳的，硬学兔子蹦跳反而摔跟头。做适合自己的事才最棒！",
+    oops:"小法官提醒🔔：小鸭的脚上有蹼，天生适合在水里划水游泳。学兔子蹦跳可不是小鸭的强项哦～"
+  },
+  {
+    emoji:"🐘", title:"大象竖起耳朵", desc:"大象听了别人的话，用竹竿把耳朵竖起来。",
+    correct:"no",
+    chips:["竖起耳朵小虫会飞进去","小虫在耳朵里跳舞，又头痛又心烦","耷拉耳朵才适合大象"],
+    ok:"小法官点赞💡：正是课文里写的！竖起耳朵小虫飞进去，吵得大象又头痛又心烦。耷拉着，才适合大象自己。",
+    oops:"小法官摇头：这可是课文里的教训呀——大象竖起耳朵，小虫飞进去跳舞，又头痛又心烦。所以竖起来不合适！"
+  },
+  {
+    emoji:"🐘", title:"大象耷拉耳朵", desc:"大象放下耳朵，让耳朵自然地耷拉着。",
+    correct:"yes",
+    chips:["虫子飞不进去","有大虫来一扇就赶跑","大象觉得舒服、踏实"],
+    ok:"小法官大笑😄：完全正确！耷拉耳朵虫子飞不进，一扇就赶跑，大象舒服又踏实。这就是适合大象自己的！",
+    oops:"小法官疑惑🙄：可是课文里大象放下耳朵后，虫子飞不进去、一扇就赶跑，浑身舒服呀。这明明是合适的！"
+  },
+  {
+    emoji:"🐔", title:"小公鸡学鸭子游泳", desc:"小公鸡羡慕鸭子在水里游，也扑通跳下水。",
+    correct:"no",
+    chips:["小公鸡没有蹼，不会划水","小公鸡羽毛沾水会沉","小公鸡打鸣、刨土才是本领"],
+    ok:"小法官点头👍：对！小公鸡没有脚蹼不会划水，羽毛一湿就下沉。各有所长，不必学别人。",
+    oops:"小法官摆手🙅：小公鸡没有蹼、羽毛怕水，下水可危险啦。它打鸣、刨土才是自己的本领！"
+  },
+  {
+    emoji:"🦔", title:"小刺猬缩成球滚下坡", desc:"小刺猬遇到危险，缩成小球骨碌碌滚下山坡。",
+    correct:"yes",
+    chips:["刺猬浑身是刺，缩球能保护自己","滚下坡是刺猬的本领","这个方法正合适刺猬"],
+    ok:"小法官喝彩🎉：太合适了！刺猬一身尖刺，缩成球既能护身又能滚下坡，这就是它自己的绝招！",
+    oops:"小法官思考🤔：刺猬满身是刺，缩成球恰恰能保护自己、顺利滚下坡呀，这可是它的看家本领，合适的！"
+  }
+];
+
+/* ====== 状态 ====== */
+let idx = 0, score = 0, chosen = null, judged = false;
+const total = scenarios.length;
+
+/* ====== 切换屏 ====== */
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('show'));
+  document.getElementById(id).classList.add('show');
+}
+
+function startGame(){
+  idx = 0; score = 0; chosen = null; judged = false;
+  document.getElementById('score').textContent = '0';
+  show('screen-game');
+  render();
+}
+
+function render(){
+  const s = scenarios[idx];
+  chosen = null; judged = false;
+  document.getElementById('progress').textContent = `第 ${idx+1} / ${total} 题`;
+  document.getElementById('sc-emoji').textContent = s.emoji;
+  document.getElementById('sc-title').textContent = s.title;
+  document.getElementById('sc-desc').textContent = s.desc;
+  document.getElementById('reason').value = '';
+
+  // 理由短语
+  const chips = document.getElementById('chips');
+  chips.innerHTML = '';
+  s.chips.forEach(c=>{
+    const el = document.createElement('span');
+    el.className = 'chip';
+    el.textContent = c;
+    el.onclick = ()=>fillReason(c);
+    chips.appendChild(el);
+  });
+
+  // 重置选择样式
+  document.getElementById('pick-yes').classList.remove('sel');
+  document.getElementById('pick-no').classList.remove('sel');
+  document.getElementById('judgeBtn').style.display = '';
+  document.getElementById('nextBtn').style.display = 'none';
+  const v = document.getElementById('verdict');
+  v.className = 'verdict'; v.textContent = '';
+}
+
+function choose(ans){
+  if(judged) return;
+  chosen = ans;
+  document.getElementById('pick-yes').classList.toggle('sel', ans==='yes');
+  document.getElementById('pick-no').classList.toggle('sel', ans==='no');
+}
+
+function fillReason(text){
+  const ta = document.getElementById('reason');
+  ta.value = ta.value.trim() ? ta.value.trim() + '；' + text : text;
+}
+
+function insertTpl(tpl){
+  const ta = document.getElementById('reason');
+  ta.value = ta.value.trim() ? ta.value.trim() + tpl : tpl;
+}
+
+/* ====== AI小法官评判（本地智能评语引擎，可替换为真实大模型） ====== */
+function judge(){
+  if(!chosen){
+    alert('先选一选：这个做法“合适”还是“不合适”吧～');
+    return;
+  }
+  const s = scenarios[idx];
+  const right = (chosen === s.correct);
+  const reason = document.getElementById('reason').value.trim();
+
+  if(right){
+    score += 10;
+    let msg = s.ok;
+    if(reason) msg += ' 你能用课文的话讲道理，表达真清楚，再加 5 分！';
+    else msg += ' 要是再说出你的理由，就更完整啦！';
+    if(reason) score += 5;
+    showVerdict(msg, true);
+  }else{
+    score += 0;
+    let msg = s.oops;
+    if(reason) msg += ' 不过你能说出想法，很勇敢！再读读故事，想想大象的经历吧。';
+    else msg += ' 别急，结合大象“竖耳头痛、耷拉舒服”的经历再想想～';
+    showVerdict(msg, false);
+  }
+  document.getElementById('score').textContent = score;
+  judged = true;
+  document.getElementById('judgeBtn').style.display = 'none';
+  document.getElementById('nextBtn').style.display = '';
+}
+
+function showVerdict(text, ok){
+  const v = document.getElementById('verdict');
+  v.textContent = text;
+  v.className = 'verdict show ' + (ok ? 'ok' : 'no');
+}
+
+function next(){
+  idx++;
+  if(idx < total) render();
+  else showResult();
+}
+
+function showResult(){
+  document.getElementById('final-score').textContent = score + ' 分';
+  let msg;
+  const max = total*15;
+  if(score >= max*0.85) msg = '太厉害了！你真正读懂了大象，也学会了用课文的话讲道理。';
+  else if(score >= max*0.6) msg = '不错哦！你已经明白“适合自己的才是最好的”，继续加油！';
+  else msg = '再读读《大象的耳朵》，想想大象两次改变的经历，你会更清楚！';
+  document.getElementById('final-msg').textContent = msg;
+  show('screen-result');
+}
+
+function restart(){ startGame(); }
+
+/* ====== 接入真实大模型（可选） ======
+   如需让“AI小法官”调用真实大模型，可在下方填写接口，
+   并把 judge() 中的评语来源改为调用 callRealAI()。
+function callRealAI(prompt){
+  // 示例：fetch('你的API地址', {method:'POST', headers:{'Content-Type':'application/json'},
+  //   body:JSON.stringify({prompt})}).then(r=>r.json())...
+}
+*/
+</script>
+</body>
+</html>
